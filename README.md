@@ -18,9 +18,10 @@
 
 ## 🚧 **Project Status**
 
-> This project is currently under **active development**.
-> Developed and maintained by **Ahmad** 🧑‍💻
-> Other Developer are Disclosed Soon 👥
+> This project is currently under **active development**.<br>
+> Developed and maintained by **Ahmad** 🧑‍💻<br>
+> Other Developer are Disclosed Soon 👥<br>
+
 ---
 
 ## 💡 **Overview**

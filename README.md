@@ -130,7 +130,7 @@ flowchart TD
 
 ## 🪶 **License**
 
-📜 This project is licensed under the **MIT License** — open for innovation & learning.
+📜 This project is licensed under the [MIT License](License.md) — open for innovation & learning.
 
 <p align="center">
   <a href="#"><img src="https://img.shields.io/badge/View_License-MIT_License-black?style=for-the-badge&logo=open-source-initiative" /></a>

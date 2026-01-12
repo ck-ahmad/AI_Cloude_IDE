@@ -15,7 +15,7 @@ from sqlalchemy import text
 #            FLASK SETUP
 # =====================================
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "nsluvurhozqetrxz")
+app.secret_key = os.environ.get("SECRET_KEY", "Your Secure key")
 
 # ============ DATABASE (SQLite) =============
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///AI_IDE.db'
@@ -100,15 +100,8 @@ import google.generativeai as genai
 # =====================================
 #         GEMINI AI SETUP
 # =====================================
-# =====================================
-#         GEMINI AI SETUP
-# =====================================
-# 1. Get your key from https://aistudio.google.com/app/apikey
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", 'AIzaSyCe-j3YXcDECkupfUDxqPhHjsWYjWBrQ9Y')
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", 'Your API key')
 genai.configure(api_key=GEMINI_API_KEY)
-
-# 2. Initialize with a VALID model name (Case sensitive: must be 'gemini')
-# Recommended models: 'gemini-1.5-flash' (fast) or 'gemini-1.5-pro' (complex)
 model = genai.GenerativeModel(
     model_name="gemini-1.5-pro", 
     system_instruction="You are an expert AI Coding Assistant. Keep answers technical and brief."

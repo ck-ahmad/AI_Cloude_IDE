@@ -3,6 +3,11 @@
 ### 🧠 *Intelligent Cloud IDE with AI Code Assistant & GitHub Integration*
 
 *(Powered by APIs of online IDEs & GPT models)*
+---
+
+
+<img width="1918" height="841" alt="image" src="https://github.com/user-attachments/assets/a3665cf9-773e-4880-a308-c3319b553295" />
+
 
 ---
 

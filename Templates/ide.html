@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}Code IDE - AI IDE{% endblock %}
+
+{% block extra_css %}
+<style>
+    .code-editor {
+        font-family: 'Courier New', monospace;
+        background: #1e1e1e;
+        color: #d4d4d4;
+        line-height: 1.5;
+        tab-size: 4;
+    }
+    
+    .terminal-output {
+        font-family: 'Courier New', monospace;
+        background: #000;
+        color: #0f0;
+        line-height: 1.5;
+    }
+    
+    .sidebar-active {
+        background: rgba(102, 126, 234, 0.1);
+        border-left: 3px solid #667eea;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-900 overflow-hidden">
+    <!-- Sidebar -->
+    <div class="w-64 bg-gray-800 text-white p-4 overflow-y-auto">
+        <h2 class="text-xl font-bold mb-4">
+            <i class="fas fa-folder-tree mr-2"></i>File Explorer
+        </h2>
+        
+        <div class="mb-4">
+            <label class="block text-sm text-gray-400 mb-2">Project</label>
+            <select id="project-select" class="w-full bg-gray-700 text-white px-3 py-2 rounded focus:ring-2 focus:ring-purple-600">
+                <option value="">Select Project</option>
+                {% for project in projects %}
+                <option value="{{ project.id }}">{{ project.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div id="file-list" class="space-y-1 mb-4">
+            <!-- Files will be dynamically loaded here -->
+        </div>
+        
+        <button id="new-file-btn" class="w-full bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition">
+            <i class="fas fa-plus mr-2"></i>New File
+        </button>
+    </div>
+
+    <!-- Editor Section -->
+    <div class="flex-1 flex flex-col">
+        <!-- Toolbar -->
+        <div class="bg-gray-800 text-white p-3 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <input type="text" id="filename" placeholder="filename.py" 
+                    class="bg-gray-700 px-3 py-2 rounded w-64 focus:ring-2 focus:ring-purple-600 focus:outline-none">
+                <select id="language-select" class="bg-gray-700 px-3 py-2 rounded focus:ring-2 focus:ring-purple-600 focus:outline-none">
+                    <option value="python">Python</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="html">HTML</option>
+                    <option value="css">CSS</option>
+                    <option value="sql">SQL</option>
+                    <option value="java">Java</option>
+                    <option value="cpp">C++</option>
+                </select>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button id="save-btn" class="bg-green-600 px-4 py-2 rounded hover:bg-green-700 transition">
+                    <i class="fas fa-save mr-2"></i>Save
+                </button>
+                <button id="run-btn" class="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700 transition">
+                    <i class="fas fa-play mr-2"></i>Run
+                </button>
+                <button id="clear-btn" class="bg-red-600 px-4 py-2 rounded hover:bg-red-700 transition">
+                    <i class="fas fa-trash mr-2"></i>Clear
+                </button>
+            </div>
+        </div>
+
+        <!-- Code Editor -->
+        <div class="flex-1 flex overflow-hidden">
+            <textarea id="code-editor" 
+                class="flex-1 code-editor p-4 resize-none focus:outline-none" 
+                placeholder="// Start coding here...
+# Python example:
+def hello_world():
+    print('Hello from AI IDE!')
+    
+hello_world()"></textarea>
+        </div>
+
+        <!-- Terminal Output -->
+        <div class="h-48 bg-black text-green-400 p-4 overflow-auto terminal-output">
+            <div id="terminal-output">
+                <p class="text-green-500">> Terminal ready. Press 'Run' to execute your code...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const codeEditor = document.getElementById('code-editor');
+const runBtn = document.getElementById('run-btn');
+const saveBtn = document.getElementById('save-btn');
+const clearBtn = document.getElementById('clear-btn');
+const terminalOutput = document.getElementById('terminal-output');
+const languageSelect = document.getElementById('language-select');
+const filenameInput = document.getElementById('filename');
+const projectSelect = document.getElementById('project-select');
+
+// Run code
+runBtn.addEventListener('click', async () => {
+    const code = codeEditor.value;
+    const language = languageSelect.value;
+    
+    if (!code.trim()) {
+        terminalOutput.innerHTML = '<p class="text-red-400">> Error: No code to execute</p>';
+        return;
+    }
+    
+    terminalOutput.innerHTML = '<p class="text-yellow-400">> Running code...</p>';
+    
+    try {
+        const endpoint = language === 'sql' ? '/ide/sql/execute' : '/ide/execute';
+        const body = language === 'sql' ? { sql_code: code } : { code, language };
+        
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            if (data.results) {
+                terminalOutput.innerHTML = `<p class="text-green-400">> ${data.message}</p>
+                    <pre class="text-white mt-2">${JSON.stringify(data.results, null, 2)}</pre>`;
+            } else {
+                terminalOutput.innerHTML = `<p class="text-green-400">> Output:</p>
+                    <pre class="text-white">${data.output || data.message}</pre>`;
+            }
+        } else {
+            terminalOutput.innerHTML = `<p class="text-red-400">> Error: ${data.message}</p>`;
+        }
+    } catch (error) {
+        terminalOutput.innerHTML = `<p class="text-red-400">> Error: ${error.message}</p>`;
+    }
+});
+
+// Save code
+saveBtn.addEventListener('click', async () => {
+    const code = codeEditor.value;
+    const language = languageSelect.value;
+    const filename = filenameInput.value;
+    const projectId = projectSelect.value;
+    
+    if (!filename) {
+        showFlashMessage('Please enter a filename', 'error');
+        return;
+    }
+    
+    if (!code.trim()) {
+        showFlashMessage('Cannot save empty file', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/ide/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                filename, 
+                content: code, 
+                language,
+                project_id: projectId || null
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            showFlashMessage(data.message, 'success');
+            terminalOutput.innerHTML += `<p class="text-green-400">> File saved: ${filename}</p>`;
+        } else {
+            showFlashMessage(data.message, 'error');
+        }
+    } catch (error) {
+        showFlashMessage('Error saving file: ' + error.message, 'error');
+    }
+});
+
+// Clear editor
+clearBtn.addEventListener('click', () => {
+    if (confirm('Are you sure you want to clear the editor?')) {
+        codeEditor.value = '';
+        terminalOutput.innerHTML = '<p class="text-green-500">> Editor cleared. Ready for new code...</p>';
+    }
+});
+
+// New file button
+document.getElementById('new-file-btn').addEventListener('click', () => {
+    filenameInput.value = '';
+    codeEditor.value = '';
+    terminalOutput.innerHTML = '<p class="text-green-500">> New file ready...</p>';
+});
+
+// Auto-update filename extension when language changes
+languageSelect.addEventListener('change', () => {
+    const language = languageSelect.value;
+    const extensions = {
+        python: '.py',
+        javascript: '.js',
+        html: '.html',
+        css: '.css',
+        sql: '.sql',
+        java: '.java',
+        cpp: '.cpp'
+    };
+    
+    const currentName = filenameInput.value;
+    if (currentName && !currentName.includes('.')) {
+        filenameInput.value = currentName + extensions[language];
+    }
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    // Ctrl/Cmd + S to save
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        saveBtn.click();
+    }
+    
+    // Ctrl/Cmd + Enter to run
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        runBtn.click();
+    }
+});
+
+// Tab key support in editor
+codeEditor.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = codeEditor.selectionStart;
+        const end = codeEditor.selectionEnd;
+        codeEditor.value = codeEditor.value.substring(0, start) + '    ' + codeEditor.value.substring(end);
+        codeEditor.selectionStart = codeEditor.selectionEnd = start + 4;
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Create Project - AI IDE{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-xl shadow-md p-8 animate-fade-in">
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                    <i class="fas fa-folder-plus text-purple-600 mr-3"></i>Create New Project
+                </h1>
+                <p class="text-gray-600">Start a new coding project and organize your files</p>
+            </div>
+
+            <form method="POST" action="/project/create" class="space-y-6">
+                <div>
+                    <label for="name" class="block text-gray-700 font-semibold mb-2">
+                        <i class="fas fa-tag mr-2"></i>Project Name *
+                    </label>
+                    <input type="text" id="name" name="name" required
+                        placeholder="My Awesome Project"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent transition">
+                </div>
+
+                <div>
+                    <label for="description" class="block text-gray-700 font-semibold mb-2">
+                        <i class="fas fa-align-left mr-2"></i>Description
+                    </label>
+                    <textarea id="description" name="description" rows="4"
+                        placeholder="Describe your project..."
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent transition"></textarea>
+                </div>
+
+                <div>
+                    <label for="repo_link" class="block text-gray-700 font-semibold mb-2">
+                        <i class="fab fa-github mr-2"></i>Repository Link (Optional)
+                    </label>
+                    <input type="url" id="repo_link" name="repo_link"
+                        placeholder="https://github.com/username/repo"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent transition">
+                </div>
+
+                <div class="flex items-center justify-between pt-4">
+                    <a href="/projects" class="text-gray-600 hover:text-gray-800 font-medium">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Projects
+                    </a>
+                    <button type="submit" 
+                        class="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-3 rounded-lg font-semibold hover:shadow-lg transform hover:scale-105 transition">
+                        <i class="fas fa-plus mr-2"></i>Create Project
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Tips Section -->
+        <div class="mt-8 bg-blue-50 rounded-xl p-6 animate-fade-in" style="animation-delay: 0.1s">
+            <h3 class="text-lg font-bold text-blue-800 mb-3">
+                <i class="fas fa-lightbulb mr-2"></i>Tips for organizing your project
+            </h3>
+            <ul class="space-y-2 text-blue-700">
+                <li><i class="fas fa-check mr-2"></i>Use clear, descriptive names for your projects</li>
+                <li><i class="fas fa-check mr-2"></i>Add a detailed description to help you remember the project's purpose</li>
+                <li><i class="fas fa-check mr-2"></i>Link your GitHub repository for version control</li>
+                <li><i class="fas fa-check mr-2"></i>Organize related files within the same project</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}AI Assistant - AI IDE{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-4xl mx-auto px-4">
+        <!-- Header -->
+        <div class="text-center mb-8 animate-fade-in">
+            <i class="fas fa-robot text-6xl text-purple-600 mb-4"></i>
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">AI Coding Assistant</h1>
+            <p class="text-gray-600">Get help with your code, debug errors, and learn new concepts</p>
+        </div>
+
+        <!-- Chat Container -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-6 animate-fade-in" style="height: 500px; overflow-y: auto;" id="chat-container">
+            <div class="space-y-4" id="chat-messages">
+                <!-- Welcome Message -->
+                <div class="flex items-start">
+                    <div class="bg-purple-100 rounded-full p-3 mr-3">
+                        <i class="fas fa-robot text-purple-600"></i>
+                    </div>
+                    <div class="bg-gray-100 rounded-lg p-4 max-w-lg">
+                        <p class="text-gray-800">Hello! I'm your AI coding assistant. I can help you with:</p>
+                        <ul class="mt-2 space-y-1 text-sm text-gray-700">
+                            <li>• Writing and debugging code</li>
+                            <li>• Explaining programming concepts</li>
+                            <li>• Suggesting best practices</li>
+                            <li>• Reviewing your code</li>
+                            <li>• Answering technical questions</li>
+                        </ul>
+                        <p class="mt-2 text-gray-800">How can I assist you today?</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="bg-white rounded-xl shadow-md p-4 animate-fade-in" style="animation-delay: 0.1s">
+            <div class="flex items-center space-x-2">
+                <input type="text" id="ai-input" 
+                    placeholder="Ask me anything about coding..." 
+                    class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    onkeypress="if(event.key === 'Enter') sendMessage()">
+                <button id="send-btn" 
+                    onclick="sendMessage()" 
+                    class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="mt-4 flex flex-wrap gap-2">
+                <button onclick="quickQuestion('How do I write a for loop in Python?')" 
+                    class="text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded-full hover:bg-purple-200 transition">
+                    Python for loop
+                </button>
+                <button onclick="quickQuestion('Explain recursion with an example')" 
+                    class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full hover:bg-blue-200 transition">
+                    Recursion
+                </button>
+                <button onclick="quickQuestion('What are the differences between let, var, and const?')" 
+                    class="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full hover:bg-green-200 transition">
+                    JavaScript variables
+                </button>
+                <button onclick="quickQuestion('How do I connect to a database in Flask?')" 
+                    class="text-xs bg-pink-100 text-pink-700 px-3 py-1 rounded-full hover:bg-pink-200 transition">
+                    Flask database
+                </button>
+            </div>
+        </div>
+
+        <!-- Tips Section -->
+        <div class="mt-8 bg-blue-50 rounded-xl p-6 animate-fade-in" style="animation-delay: 0.2s">
+            <h3 class="text-lg font-bold text-blue-800 mb-3">
+                <i class="fas fa-lightbulb mr-2"></i>Tips for better responses
+            </h3>
+            <ul class="space-y-2 text-blue-700 text-sm">
+                <li><i class="fas fa-check mr-2"></i>Be specific about what you're trying to accomplish</li>
+                <li><i class="fas fa-check mr-2"></i>Include relevant error messages if debugging</li>
+                <li><i class="fas fa-check mr-2"></i>Mention the programming language you're using</li>
+                <li><i class="fas fa-check mr-2"></i>Share code snippets for better context</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const aiInput = document.getElementById('ai-input');
+const chatMessages = document.getElementById('chat-messages');
+const chatContainer = document.getElementById('chat-container');
+
+/**
+ * Appends a message bubble to the chat container
+ */
+function addMessage(content, isUser = false) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `flex items-start ${isUser ? 'justify-end' : ''} animate-fade-in mb-4`;
+    
+    if (isUser) {
+        messageDiv.innerHTML = `
+            <div class="bg-purple-600 text-white rounded-lg p-4 max-w-lg shadow-sm">
+                <p class="whitespace-pre-wrap">${escapeHtml(content)}</p>
+            </div>
+            <div class="bg-gray-800 rounded-full p-3 ml-3 flex-shrink-0">
+                <i class="fas fa-user text-white"></i>
+            </div>
+        `;
+    } else {
+        // AI responses often contain Markdown; for a real IDE, 
+        // consider using a library like 'marked.js' here.
+        messageDiv.innerHTML = `
+            <div class="bg-purple-100 rounded-full p-3 mr-3 flex-shrink-0">
+                <i class="fas fa-robot text-purple-600"></i>
+            </div>
+            <div class="bg-gray-100 rounded-lg p-4 max-w-lg shadow-sm border border-gray-200">
+                <div class="text-gray-800 whitespace-pre-wrap">${content}</div>
+            </div>
+        `;
+    }
+    
+    chatMessages.appendChild(messageDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+function escapeHtml(text) {
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+    return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+/**
+ * Sends the user message to the Flask Gemini backend
+ */
+async function sendMessage() {
+    const message = aiInput.value.trim();
+    if (!message) return;
+    
+    // 1. Add user message to UI
+    addMessage(message, true);
+    aiInput.value = '';
+    
+    // 2. Show typing indicator
+    const typingDiv = document.createElement('div');
+    typingDiv.id = 'typing-indicator';
+    typingDiv.className = 'flex items-start animate-pulse mb-4';
+    typingDiv.innerHTML = `
+        <div class="bg-purple-100 rounded-full p-3 mr-3">
+            <i class="fas fa-robot text-purple-600"></i>
+        </div>
+        <div class="bg-gray-100 rounded-lg p-4">
+            <p class="text-gray-500 text-sm">Gemini is thinking...</p>
+        </div>
+    `;
+    chatMessages.appendChild(typingDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+
+    try {
+        // 3. Fetch from Python Backend
+        const response = await fetch('/ai-assistant/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ message: message })
+        });
+
+        const data = await response.json();
+        
+        // 4. Remove typing indicator
+        document.getElementById('typing-indicator')?.remove();
+
+        if (data.status === 'success') {
+            addMessage(data.reply, false);
+        } else {
+            addMessage("Error: " + (data.message || "Failed to get response"), false);
+        }
+    } catch (error) {
+        document.getElementById('typing-indicator')?.remove();
+        addMessage("Connection error. Is the server running?", false);
+        console.error("AI Error:", error);
+    }
+}
+
+function quickQuestion(question) {
+    aiInput.value = question;
+    sendMessage();
+}
+
+// Ensure the chat container stays scrolled to bottom on load
+window.onload = () => {
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+};
+</script>
+{% endblock %}

@@ -1,0 +1,4 @@
+1 - we can create a folder in ide
+2 - we can generate readme.md & problem.md file by gemeni
+3 - we can push code on cloudinary in zip file
+4 - we can also push code on github after creating the project, by just automating the commands , after creating github repo

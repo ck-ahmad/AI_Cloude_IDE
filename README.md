@@ -283,6 +283,14 @@ For detailed setup instructions, API documentation, and developer guides, please
       <a href="https://www.linkedin.com/in/ahmad0763">LinkedIn</a>
     </td>
   </tr>
+   <tr>
+    <td align="center">
+      <img src="https://img.shields.io/badge/Role-Backend_&_AI-blue?style=flat-square" /><br>
+      <b>M. Aizazullah</b><br>
+      <sub>Frontend & AI Enhancement</sub><br>
+      <a href="https://www.linkedin.com/in/muhammad-aizazullah-748931286/">LinkedIn</a>
+    </td>
+  </tr>
 </table>
 
 ---

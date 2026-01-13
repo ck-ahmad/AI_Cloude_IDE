@@ -296,7 +296,7 @@ For detailed setup instructions, API documentation, and developer guides, please
       <img src="https://img.shields.io/badge/Role-Backend_&_AI-blue?style=flat-square" /><br>
       <b>Ume Habiba</b><br>
       <sub>CLoude Integration</sub><br>
-      <a href="https://www.linkedin.com/in/muhammad-aizazullah-748931286/">LinkedIn</a>
+      <a href="https://www.linkedin.com/in/um-e-habiba-031b6a301/">LinkedIn</a>
     </td>
   </tr>
 </table>

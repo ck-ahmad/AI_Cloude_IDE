@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}Upload File - AI IDE{% endblock %}
+
+{% block content %}
+<style>
+    .upload-container {
+        max-width: 700px;
+        margin: 0 auto;
+    }
+
+    .upload-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 30px;
+    }
+
+    .file-drop-zone {
+        border: 2px dashed var(--border-color);
+        border-radius: 8px;
+        padding: 40px;
+        text-align: center;
+        transition: all 0.2s;
+        cursor: pointer;
+        margin-bottom: 25px;
+    }
+
+    .file-drop-zone:hover {
+        border-color: var(--accent-blue);
+        background: var(--bg-hover);
+    }
+
+    .file-drop-zone.dragover {
+        border-color: var(--accent-blue);
+        background: rgba(0, 122, 204, 0.1);
+    }
+
+    .upload-icon {
+        font-size: 48px;
+        color: var(--text-secondary);
+        margin-bottom: 15px;
+    }
+
+    .file-drop-zone:hover .upload-icon {
+        color: var(--accent-blue);
+    }
+
+    .selected-file {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--accent-green);
+        border-radius: 6px;
+        padding: 15px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 15px;
+    }
+
+    .selected-file i {
+        font-size: 24px;
+        color: var(--accent-green);
+    }
+
+    .selected-file-info {
+        flex: 1;
+    }
+
+    .selected-file-name {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 4px;
+    }
+
+    .selected-file-size {
+        font-size: 12px;
+        color: var(--text-secondary);
+    }
+
+    .remove-file {
+        cursor: pointer;
+        color: var(--accent-red);
+        padding: 8px;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+
+    .remove-file:hover {
+        background: rgba(244, 71, 71, 0.1);
+    }
+
+    .storage-warning {
+        background: rgba(206, 145, 120, 0.1);
+        border: 1px solid var(--accent-orange);
+        border-radius: 6px;
+        padding: 12px 16px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+        color: var(--accent-orange);
+    }
+</style>
+
+<div class="upload-container">
+    <div style="margin-bottom: 30px;">
+        <h1 style="font-size: 28px; color: var(--text-primary); margin-bottom: 8px;">
+            <i class="fas fa-cloud-upload-alt"></i> Upload File
+        </h1>
+        <p style="color: var(--text-secondary);">
+            Upload files to cloud storage for your projects
+        </p>
+    </div>
+
+    <div class="upload-card">
+        <form method="POST" action="{{ url_for('file_upload') }}" enctype="multipart/form-data" id="upload-form">
+            <div class="file-drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+                <div class="upload-icon">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                </div>
+                <h3 style="color: var(--text-primary); margin-bottom: 8px;">
+                    Click to upload or drag and drop
+                </h3>
+                <p style="color: var(--text-secondary); font-size: 13px;">
+                    Maximum file size: 500 MB
+                </p>
+                <input type="file" 
+                       id="file-input" 
+                       name="file" 
+                       style="display: none;" 
+                       onchange="handleFileSelect(event)"
+                       required>
+            </div>
+
+            <div id="selected-file-container"></div>
+
+            <div class="storage-warning">
+                <i class="fas fa-info-circle"></i>
+                <span>
+                    Available storage: <strong>{{ "%.2f"|format(user.max_storage_mb - user.storage_used) }} MB</strong>
+                </span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fas fa-tag"></i> Filename
+                </label>
+                <input type="text" 
+                       class="form-control" 
+                       name="filename" 
+                       id="filename"
+                       placeholder="Enter filename"
+                       required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fas fa-code"></i> Language
+                </label>
+                <select class="form-control" name="language" required>
+                    <option value="python">Python</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="java">Java</option>
+                    <option value="cpp">C++</option>
+                    <option value="sql">SQL</option>
+                    <option value="html">HTML</option>
+                    <option value="css">CSS</option>
+                    <option value="text">Text</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fas fa-folder"></i> Project (Optional)
+                </label>
+                <select class="form-control" name="project_id">
+                    <option value="">None</option>
+                    {% for project in projects %}
+                    <option value="{{ project.id }}">{{ project.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fas fa-align-left"></i> Description (Optional)
+                </label>
+                <textarea class="form-control" 
+                          name="description" 
+                          rows="3"
+                          placeholder="Describe this file..."></textarea>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 25px;">
+                <button type="submit" class="btn btn-primary" style="flex: 1;">
+                    <i class="fas fa-upload"></i> Upload File
+                </button>
+                <a href="{{ url_for('file_manager') }}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const filenameInput = document.getElementById('filename');
+    const selectedFileContainer = document.getElementById('selected-file-container');
+
+    // Drag and drop handlers
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+            dropZone.classList.add('dragover');
+        });
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+            dropZone.classList.remove('dragover');
+        });
+    });
+
+    dropZone.addEventListener('drop', handleDrop);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        
+        if (files.length > 0) {
+            fileInput.files = files;
+            handleFileSelect({ target: fileInput });
+        }
+    }
+
+    function handleFileSelect(event) {
+        const file = event.target.files[0];
+        
+        if (!file) return;
+
+        // Auto-fill filename
+        if (!filenameInput.value) {
+            filenameInput.value = file.name;
+        }
+
+        // Display selected file
+        const fileSize = (file.size / (1024 * 1024)).toFixed(2);
+        
+        selectedFileContainer.innerHTML = `
+            <div class="selected-file">
+                <i class="fas fa-file"></i>
+                <div class="selected-file-info">
+                    <div class="selected-file-name">${file.name}</div>
+                    <div class="selected-file-size">${fileSize} MB</div>
+                </div>
+                <div class="remove-file" onclick="removeFile()">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+        `;
+    }
+
+    function removeFile() {
+        fileInput.value = '';
+        selectedFileContainer.innerHTML = '';
+    }
+</script>
+
+{% endblock %}

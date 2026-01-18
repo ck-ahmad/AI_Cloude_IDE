@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block title %}File Manager - AI IDE{% endblock %}
+
+{% block content %}
+<style>
+    .file-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+
+    .file-header h1 {
+        font-size: 28px;
+        color: var(--text-primary);
+    }
+
+    .storage-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 15px 20px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        margin-bottom: 25px;
+    }
+
+    .storage-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: white;
+    }
+
+    .storage-details {
+        flex: 1;
+    }
+
+    .storage-text {
+        font-size: 14px;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+    }
+
+    .storage-bar {
+        width: 100%;
+        height: 10px;
+        background: var(--bg-tertiary);
+        border-radius: 5px;
+        overflow: hidden;
+    }
+
+    .storage-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+        transition: width 0.3s ease;
+    }
+
+    .files-table-container {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        overflow: hidden;
+    }
+
+    .table {
+        width: 100%;
+        font-size: 13px;
+    }
+
+    .table thead {
+        background: var(--bg-tertiary);
+    }
+
+    .table th {
+        padding: 15px 20px;
+        text-align: left;
+        color: var(--text-secondary);
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 11px;
+        letter-spacing: 0.5px;
+    }
+
+    .table td {
+        padding: 15px 20px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .table tr:hover {
+        background: var(--bg-hover);
+    }
+
+    .file-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 10px;
+        font-size: 16px;
+    }
+
+    .file-icon.python { background: rgba(78, 201, 176, 0.2); color: var(--accent-green); }
+    .file-icon.javascript { background: rgba(220, 220, 170, 0.2); color: var(--accent-yellow); }
+    .file-icon.sql { background: rgba(0, 122, 204, 0.2); color: var(--accent-blue); }
+    .file-icon.html { background: rgba(244, 71, 71, 0.2); color: var(--accent-red); }
+    .file-icon.default { background: rgba(133, 133, 133, 0.2); color: var(--text-secondary); }
+
+    .file-name-cell {
+        display: flex;
+        align-items: center;
+    }
+
+    .file-name {
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+
+    .badge {
+        padding: 4px 8px;
+        border-radius: 3px;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .badge-python { background: rgba(78, 201, 176, 0.2); color: var(--accent-green); }
+    .badge-javascript { background: rgba(220, 220, 170, 0.2); color: var(--accent-yellow); }
+    .badge-sql { background: rgba(0, 122, 204, 0.2); color: var(--accent-blue); }
+    .badge-default { background: rgba(133, 133, 133, 0.2); color: var(--text-secondary); }
+
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+    }
+
+    .icon-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 4px;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .icon-btn:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+        border-color: var(--accent-blue);
+    }
+
+    .icon-btn.danger:hover {
+        background: var(--accent-red);
+        color: white;
+        border-color: var(--accent-red);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+        background: var(--bg-secondary);
+        border: 2px dashed var(--border-color);
+        border-radius: 8px;
+    }
+
+    .empty-state i {
+        font-size: 64px;
+        color: var(--text-secondary);
+        margin-bottom: 20px;
+    }
+</style>
+
+<div class="file-header">
+    <div>
+        <h1><i class="fas fa-folder-open"></i> File Manager</h1>
+        <p style="color: var(--text-secondary); margin-top: 5px;">Manage your uploaded files and storage</p>
+    </div>
+    <a href="{{ url_for('file_upload') }}" class="btn btn-primary">
+        <i class="fas fa-upload"></i> Upload File
+    </a>
+</div>
+
+<div class="storage-info">
+    <div class="storage-icon">
+        <i class="fas fa-database"></i>
+    </div>
+    <div class="storage-details">
+        <div class="storage-text">
+            <strong>{{ "%.2f"|format(user.storage_used) }} MB</strong> of 
+            <strong>{{ user.max_storage_mb|int }} MB</strong> used 
+            ({{ "%.1f"|format((user.storage_used / user.max_storage_mb) * 100) }}%)
+        </div>
+        <div class="storage-bar">
+            <div class="storage-fill" style="width: {{ (user.storage_used / user.max_storage_mb) * 100 }}%"></div>
+        </div>
+    </div>
+</div>
+
+{% if files %}
+<div class="files-table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>File Name</th>
+                <th>Language</th>
+                <th>Project</th>
+                <th>Last Updated</th>
+                <th style="text-align: center;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for file in files %}
+            <tr>
+                <td>
+                    <div class="file-name-cell">
+                        <div class="file-icon {{ file.language }}">
+                            <i class="fas fa-file-code"></i>
+                        </div>
+                        <div>
+                            <div class="file-name">{{ file.filename }}</div>
+                            {% if file.description %}
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">
+                                {{ file.description[:50] }}{% if file.description|length > 50 %}...{% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <span class="badge badge-{{ file.language }}">{{ file.language }}</span>
+                </td>
+                <td style="color: var(--text-secondary);">
+                    {% if file.project %}
+                        <i class="fas fa-folder"></i> {{ file.project.name }}
+                    {% else %}
+                        <span style="font-style: italic;">None</span>
+                    {% endif %}
+                </td>
+                <td style="color: var(--text-secondary);">
+                    {{ file.last_updated.strftime('%b %d, %Y') }}
+                </td>
+                <td style="text-align: center;">
+                    <div class="action-buttons" style="justify-content: center;">
+                        {% if file.cloudinary_url %}
+                        <a href="{{ file.cloudinary_url }}" target="_blank" class="icon-btn" title="View File">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        {% endif %}
+                        <button class="icon-btn danger" title="Delete" onclick="deleteFile({{ file.id }})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% else %}
+<div class="empty-state">
+    <i class="fas fa-file-upload"></i>
+    <h3 style="font-size: 20px; color: var(--text-primary); margin-bottom: 10px;">No Files Yet</h3>
+    <p style="color: var(--text-secondary); margin-bottom: 25px;">Upload your first file to get started</p>
+    <a href="{{ url_for('file_upload') }}" class="btn btn-primary">
+        <i class="fas fa-upload"></i> Upload Your First File
+    </a>
+</div>
+{% endif %}
+
+<script>
+    async function deleteFile(fileId) {
+        if (!confirm('Delete this file? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/file/${fileId}/delete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+</script>
+
+{% endblock %}

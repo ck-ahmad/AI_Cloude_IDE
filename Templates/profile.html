@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - AI IDE{% endblock %}
+
+{% block content %}
+<style>
+    .profile-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .profile-header {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 30px;
+        margin-bottom: 25px;
+        display: flex;
+        align-items: center;
+        gap: 25px;
+    }
+
+    .profile-avatar-large {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 42px;
+        color: white;
+        font-weight: 600;
+        flex-shrink: 0;
+    }
+
+    .profile-info h1 {
+        font-size: 28px;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+    }
+
+    .profile-info p {
+        color: var(--text-secondary);
+        font-size: 14px;
+        margin-bottom: 15px;
+    }
+
+    .profile-stats {
+        display: flex;
+        gap: 20px;
+        font-size: 13px;
+    }
+
+    .profile-stat {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-secondary);
+    }
+
+    .profile-stat strong {
+        color: var(--text-primary);
+    }
+
+    .profile-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .profile-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 25px;
+    }
+
+    .card-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--accent-yellow);
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 14px;
+    }
+
+    .info-row:last-child {
+        border-bottom: none;
+    }
+
+    .info-label {
+        color: var(--text-secondary);
+    }
+
+    .info-value {
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+
+    .progress-bar-container {
+        margin-top: 15px;
+    }
+
+    .progress-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+    }
+
+    .progress-bar {
+        width: 100%;
+        height: 12px;
+        background: var(--bg-tertiary);
+        border-radius: 6px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+        transition: width 0.3s ease;
+    }
+
+    @media (max-width: 768px) {
+        .profile-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .profile-header {
+            flex-direction: column;
+            text-align: center;
+        }
+    }
+</style>
+
+<div class="profile-container">
+    <h1 style="font-size: 28px; margin-bottom: 8px; color: var(--text-primary);">
+        <i class="fas fa-user-circle"></i> User Profile
+    </h1>
+    <p style="color: var(--text-secondary); margin-bottom: 25px;">
+        Manage your account information and settings
+    </p>
+
+    <div class="profile-header">
+        <div class="profile-avatar-large">
+            {{ user.username[0].upper() }}
+        </div>
+        <div class="profile-info">
+            <h1>{{ user.username }}</h1>
+            <p>
+                <i class="fas fa-calendar-alt"></i>
+                Member since {{ user.created_at.strftime('%B %Y') }}
+            </p>
+            <div class="profile-stats">
+                <div class="profile-stat">
+                    <i class="fas fa-folder"></i>
+                    <strong>{{ user.projects|length }}</strong> Projects
+                </div>
+                <div class="profile-stat">
+                    <i class="fas fa-file"></i>
+                    <strong>{{ user.files|length }}</strong> Files
+                </div>
+                <div class="profile-stat">
+                    <i class="fas fa-database"></i>
+                    <strong>{{ "%.1f"|format(user.storage_used) }} MB</strong> Used
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="profile-grid">
+        <div class="profile-card">
+            <div class="card-title">
+                <i class="fas fa-info-circle"></i>
+                Account Information
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Username</span>
+                <span class="info-value">{{ user.username }}</span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Account Created</span>
+                <span class="info-value">{{ user.created_at.strftime('%b %d, %Y') }}</span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Total Projects</span>
+                <span class="info-value">{{ user.projects|length }}</span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Total Files</span>
+                <span class="info-value">{{ user.files|length }}</span>
+            </div>
+        </div>
+
+        <div class="profile-card">
+            <div class="card-title">
+                <i class="fas fa-database"></i>
+                Storage Usage
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Used Storage</span>
+                <span class="info-value">{{ "%.2f"|format(user.storage_used) }} MB</span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Total Storage</span>
+                <span class="info-value">{{ user.max_storage_mb|int }} MB</span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Available</span>
+                <span class="info-value">{{ "%.2f"|format(user.max_storage_mb - user.storage_used) }} MB</span>
+            </div>
+
+            <div class="progress-bar-container">
+                <div class="progress-label">
+                    <span>Storage Usage</span>
+                    <span>{{ "%.1f"|format((user.storage_used / user.max_storage_mb) * 100) }}%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: {{ (user.storage_used / user.max_storage_mb) * 100 }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="profile-card" style="margin-top: 20px;">
+        <div class="card-title">
+            <i class="fas fa-link"></i>
+            Social Links
+        </div>
+        
+        <form method="POST" action="{{ url_for('update_profile') }}">
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fab fa-linkedin"></i> LinkedIn Profile URL
+                </label>
+                <input type="url" 
+                       class="form-control" 
+                       name="linkedin_url" 
+                       value="{{ user.linkedin_url or '' }}"
+                       placeholder="https://linkedin.com/in/yourprofile">
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <div class="profile-card" style="margin-top: 20px; border-color: var(--accent-red);">
+        <div class="card-title" style="color: var(--accent-red);">
+            <i class="fas fa-exclamation-triangle"></i>
+            Danger Zone
+        </div>
+        
+        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 15px;">
+            Once you delete your account, there is no going back. Please be certain.
+        </p>
+        
+        <button class="btn btn-danger" onclick="alert('Account deletion feature coming soon!')">
+            <i class="fas fa-trash-alt"></i> Delete Account
+        </button>
+    </div>
+</div>
+
+{% endblock %}

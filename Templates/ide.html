@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batcomputer - Gotham IDE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --gotham-black: #0a0a0a;
+            --gotham-dark: #1a1a1a;
+            --gotham-yellow: #ffd700;
+            --gotham-gold: #d4af37;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--gotham-black);
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+
+        /* Topbar */
+        .topbar {
+            height: 45px;
+            background: linear-gradient(180deg, #0f0f0f 0%, var(--gotham-black) 100%);
+            border-bottom: 2px solid var(--gotham-yellow);
+            box-shadow: 0 2px 15px rgba(255, 215, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            font-weight: 900;
+            color: var(--gotham-yellow);
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+            letter-spacing: 2px;
+        }
+
+        .batman-symbol-small {
+            width: 24px;
+            height: 24px;
+            background: var(--gotham-yellow);
+            clip-path: polygon(
+                50% 0%, 60% 15%, 75% 15%, 80% 25%, 90% 30%, 95% 45%, 
+                85% 55%, 75% 50%, 60% 60%, 50% 100%, 40% 60%, 25% 50%, 
+                15% 55%, 5% 45%, 10% 30%, 20% 25%, 25% 15%, 40% 15%
+            );
+            filter: drop-shadow(0 0 8px var(--gotham-yellow));
+        }
+
+        .topbar-menu {
+            display: flex;
+            gap: 15px;
+            font-size: 12px;
+        }
+
+        .topbar-menu a {
+            color: #808080;
+            text-decoration: none;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .topbar-menu a:hover {
+            color: var(--gotham-yellow);
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        /* IDE Layout */
+        .ide-container {
+            display: flex;
+            height: calc(100vh - 45px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 50px;
+            background: #0f0f0f;
+            border-right: 1px solid rgba(255, 215, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px 0;
+        }
+
+        .sidebar-icon {
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #606060;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s;
+            margin-bottom: 8px;
+            border: 1px solid transparent;
+        }
+
+        .sidebar-icon:hover {
+            background: rgba(255, 215, 0, 0.1);
+            color: var(--gotham-yellow);
+            border-color: var(--gotham-yellow);
+        }
+
+        .sidebar-icon.active {
+            color: var(--gotham-yellow);
+            background: rgba(255, 215, 0, 0.15);
+            border-color: var(--gotham-yellow);
+        }
+
+        /* Explorer Panel */
+        .explorer {
+            width: 280px;
+            background: #0f0f0f;
+            border-right: 1px solid rgba(255, 215, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .explorer-header {
+            padding: 12px 18px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--gotham-yellow);
+            font-weight: 700;
+            letter-spacing: 2px;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .explorer-content {
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 10px;
+            color: #808080;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--gotham-yellow);
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+        }
+
+        select.form-control {
+            cursor: pointer;
+        }
+
+        /* Editor Area */
+        .editor-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tabs {
+            display: flex;
+            background: #0f0f0f;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+            padding: 0 12px;
+        }
+
+        .tab {
+            padding: 12px 18px;
+            font-size: 12px;
+            color: #606060;
+            cursor: pointer;
+            border-right: 1px solid rgba(255, 215, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .tab:hover {
+            background: rgba(255, 215, 0, 0.05);
+            color: #a0a0a0;
+        }
+
+        .tab.active {
+            background: var(--gotham-black);
+            color: var(--gotham-yellow);
+            border-bottom: 2px solid var(--gotham-yellow);
+        }
+
+        .editor-wrapper {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .CodeMirror {
+            height: 100% !important;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            background: var(--gotham-black) !important;
+        }
+
+        /* Bottom Panel */
+        .bottom-panel {
+            height: 220px;
+            background: #0f0f0f;
+            border-top: 2px solid rgba(255, 215, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-tabs {
+            display: flex;
+            background: #0f0f0f;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .panel-tab {
+            padding: 10px 18px;
+            font-size: 11px;
+            color: #606060;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .panel-tab:hover {
+            background: rgba(255, 215, 0, 0.05);
+            color: #a0a0a0;
+        }
+
+        .panel-tab.active {
+            background: var(--gotham-black);
+            color: var(--gotham-yellow);
+            border-bottom: 2px solid var(--gotham-yellow);
+        }
+
+        .panel-content {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            background: var(--gotham-black);
+        }
+
+        #output {
+            white-space: pre-wrap;
+            line-height: 1.6;
+            color: #00ff7f;
+        }
+
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gotham-yellow), var(--gotham-gold));
+            color: var(--gotham-black);
+            border: 1px solid var(--gotham-yellow);
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+        }
+
+        .btn-primary:hover {
+            background: var(--gotham-yellow);
+            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: rgba(0, 255, 127, 0.2);
+            color: #00ff7f;
+            border: 1px solid #00ff7f;
+        }
+
+        .btn-success:hover {
+            background: rgba(0, 255, 127, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: #e0e0e0;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 215, 0, 0.1);
+            border-color: var(--gotham-yellow);
+            color: var(--gotham-yellow);
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 12px;
+            padding: 12px 18px;
+            background: #0f0f0f;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        ::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--gotham-black);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--gotham-gold);
+            border-radius: 6px;
+            border: 2px solid var(--gotham-black);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--gotham-yellow);
+        }
+
+        .status-bar {
+            height: 28px;
+            background: linear-gradient(135deg, var(--gotham-yellow), var(--gotham-gold));
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15px;
+            font-size: 11px;
+            color: var(--gotham-black);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .status-left, .status-right {
+            display: flex;
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Topbar -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <div class="logo">
+                <div class="batman-symbol-small"></div>
+                <span>BATCOMPUTER</span>
+            </div>
+            <div class="topbar-menu">
+                <a href="{{ url_for('dashboard') }}">Command Center</a>
+                <a href="{{ url_for('projects') }}">Projects</a>
+                <a href="{{ url_for('file_manager') }}">Arsenal</a>
+                <a href="{{ url_for('ai_assistant') }}">Alfred AI</a>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <span style="font-size: 11px; color: #808080; text-transform: uppercase; letter-spacing: 1px;">
+                Agent: {{ session.username }}
+            </span>
+        </div>
+    </div>
+
+    <div class="ide-container">
+        <!-- Sidebar Icons -->
+        <div class="sidebar">
+            <div class="sidebar-icon active" title="File Explorer">
+                <i class="fas fa-file-alt"></i>
+            </div>
+            <div class="sidebar-icon" title="Search">
+                <i class="fas fa-search"></i>
+            </div>
+            <div class="sidebar-icon" title="Extensions">
+                <i class="fas fa-th"></i>
+            </div>
+        </div>
+
+        <!-- Explorer Panel -->
+        <div class="explorer">
+            <div class="explorer-header">File Configuration</div>
+            <div class="explorer-content">
+                <div class="form-group">
+                    <label class="form-label">Filename</label>
+                    <input type="text" class="form-control" id="filename" placeholder="script.py" value="script.py">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Language</label>
+                    <select class="form-control" id="language">
+                        <option value="python">Python</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="java">Java</option>
+                        <option value="cpp">C++</option>
+                        <option value="sql">SQL</option>
+                        <option value="html">HTML</option>
+                        <option value="css">CSS</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Project</label>
+                    <select class="form-control" id="project_id">
+                        <option value="">None</option>
+                        {% for project in projects %}
+                        <option value="{{ project.id }}">{{ project.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <button class="btn btn-success" style="width: 100%;" onclick="saveCode()">
+                    <i class="fas fa-save"></i> Save File
+                </button>
+            </div>
+        </div>
+
+        <!-- Editor Area -->
+        <div class="editor-area">
+            <div class="tabs">
+                <div class="tab active">
+                    <i class="fas fa-file-code"></i>
+                    <span id="tab-name">script.py</span>
+                </div>
+            </div>
+
+            <div class="toolbar">
+                <button class="btn btn-primary" onclick="executeCode()">
+                    <i class="fas fa-play"></i> Execute
+                </button>
+                <button class="btn btn-secondary" onclick="clearEditor()">
+                    <i class="fas fa-eraser"></i> Clear
+                </button>
+            </div>
+
+            <div class="editor-wrapper">
+                <textarea id="code-editor"># Welcome to the Batcomputer
+# Write your code here
+
+print("Justice prevails in Gotham!")</textarea>
+            </div>
+
+            <div class="bottom-panel">
+                <div class="panel-tabs">
+                    <div class="panel-tab active">
+                        <i class="fas fa-terminal"></i> OUTPUT TERMINAL
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div id="output">System ready. Awaiting instructions...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="status-left">
+            <span><i class="fas fa-code-branch"></i> MAIN</span>
+            <span><i class="fas fa-check-circle"></i> OPERATIONAL</span>
+        </div>
+        <div class="status-right">
+            <span id="status-language">Python</span>
+            <span>Ln 1, Col 1</span>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/sql/sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/css/css.min.js"></script>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script>
+        let editor = CodeMirror.fromTextArea(document.getElementById('code-editor'), {
+            mode: 'python',
+            theme: 'material-darker',
+            lineNumbers: true,
+            autoCloseBrackets: true,
+            matchBrackets: true,
+            indentUnit: 4,
+            tabSize: 4,
+            lineWrapping: false
+        });
+
+        document.getElementById('language').addEventListener('change', function() {
+            const lang = this.value;
+            const modes = {
+                'python': 'python',
+                'javascript': 'javascript',
+                'java': 'text/x-java',
+                'cpp': 'text/x-c++src',
+                'sql': 'sql',
+                'html': 'htmlmixed',
+                'css': 'css'
+            };
+            editor.setOption('mode', modes[lang] || 'python');
+            document.getElementById('status-language').textContent = lang.charAt(0).toUpperCase() + lang.slice(1);
+        });
+
+        document.getElementById('filename').addEventListener('input', function() {
+            document.getElementById('tab-name').textContent = this.value || 'untitled';
+        });
+
+        async function executeCode() {
+            const code = editor.getValue();
+            const language = document.getElementById('language').value;
+            const outputDiv = document.getElementById('output');
+
+            if (!code.trim()) {
+                outputDiv.textContent = 'ERROR: No code to execute';
+                outputDiv.style.color = '#ff4444';
+                return;
+            }
+
+            outputDiv.textContent = '⚡ Executing...';
+            outputDiv.style.color = '#ffd700';
+
+            try {
+                const endpoint = language === 'sql' ? '/ide/sql/execute' : '/ide/execute';
+                const payload = language === 'sql' ? { sql_code: code } : { code: code, language: language };
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    outputDiv.style.color = '#00ff7f';
+                    if (data.results) {
+                        outputDiv.textContent = JSON.stringify(data.results, null, 2);
+                    } else {
+                        outputDiv.textContent = data.output || data.message;
+                    }
+                } else {
+                    outputDiv.style.color = '#ff4444';
+                    outputDiv.textContent = 'ERROR: ' + (data.message || data.output || 'Unknown error');
+                }
+            } catch (error) {
+                outputDiv.style.color = '#ff4444';
+                outputDiv.textContent = 'ERROR: ' + error.message;
+            }
+        }
+
+        async function saveCode() {
+            const filename = document.getElementById('filename').value;
+            const content = editor.getValue();
+            const language = document.getElementById('language').value;
+            const projectId = document.getElementById('project_id').value;
+
+            if (!filename.trim()) {
+                alert('Please enter a filename');
+                return;
+            }
+
+            try {
+                const response = await fetch('/ide/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filename: filename,
+                        content: content,
+                        language: language,
+                        project_id: projectId || null
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    alert('✓ File saved successfully!');
+                } else {
+                    alert('✗ Error: ' + data.message);
+                }
+            } catch (error) {
+                alert('✗ Error: ' + error.message);
+            }
+        }
+
+        function clearEditor() {
+            if (confirm('Clear all code?')) {
+                editor.setValue('');
+                document.getElementById('output').textContent = 'System ready. Awaiting instructions...';
+                document.getElementById('output').style.color = '#00ff7f';
+            }
+        }
+
+        editor.on('cursorActivity', function() {
+            const cursor = editor.getCursor();
+            document.querySelector('.status-right span:last-child').textContent = 
+                `Ln ${cursor.line + 1}, Col ${cursor.ch + 1}`;
+        });
+const socket = io();
+const username = "{{ user.username }}";
+const projectId = 1; // Your project ID
+
+// Connect and join project
+socket.on('connect', function() {
+    console.log('Connected to server');
+    socket.emit('join_project', {
+        project_id: projectId,
+        username: username
+    });
+});
+
+// Listen for user joins
+socket.on('user_joined', function(data) {
+    console.log(data.username + ' joined the project');
+    document.getElementById('active-users').innerText = data.active_users;
+});
+
+// Listen for code changes
+socket.on('code_changed', function(data) {
+    console.log('Code updated by: ' + data.username);
+    // Update your code editor here
+    editor.setValue(data.code);
+});
+
+// Send code updates
+function sendCodeUpdate(code) {
+    socket.emit('code_update', {
+        project_id: projectId,
+        code: code,
+        filename: 'main.py',
+        username: username
+    });
+}
+
+// Chat functionality
+function sendMessage(message) {
+    socket.emit('chat_message', {
+        project_id: projectId,
+        message: message,
+        username: username
+    });
+}
+
+socket.on('new_message', function(data) {
+    console.log(data.username + ': ' + data.message);
+    // Display message in chat UI
+});
+</script>
+</body>
+</html>

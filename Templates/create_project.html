@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Create Project - AI IDE{% endblock %}
+
+{% block content %}
+<style>
+    .create-container {
+        max-width: 700px;
+        margin: 0 auto;
+    }
+
+    .page-header {
+        margin-bottom: 30px;
+    }
+
+    .page-header h1 {
+        font-size: 28px;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+    }
+
+    .page-header p {
+        color: var(--text-secondary);
+        font-size: 14px;
+    }
+
+    .form-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 30px;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 25px;
+        padding-top: 25px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .char-count {
+        font-size: 11px;
+        color: var(--text-secondary);
+        text-align: right;
+        margin-top: 4px;
+    }
+</style>
+
+<div class="create-container">
+    <div class="page-header">
+        <h1><i class="fas fa-plus-circle"></i> Create New Project</h1>
+        <p>Set up a new project to organize your code and files</p>
+    </div>
+
+    <div class="form-card">
+        <form method="POST" action="{{ url_for('create_project') }}">
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fas fa-signature"></i> Project Name *
+                </label>
+                <input type="text" 
+                       class="form-control" 
+                       name="name" 
+                       placeholder="My Awesome Project"
+                       required 
+                       autofocus
+                       maxlength="100"
+                       id="project-name">
+                <div class="char-count">
+                    <span id="name-count">0</span> / 100 characters
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fas fa-align-left"></i> Description
+                </label>
+                <textarea class="form-control" 
+                          name="description" 
+                          rows="5"
+                          placeholder="Describe what this project is about..."
+                          maxlength="1000"
+                          id="project-desc"></textarea>
+                <div class="char-count">
+                    <span id="desc-count">0</span> / 1000 characters
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fab fa-github"></i> Repository Link
+                </label>
+                <input type="url" 
+                       class="form-control" 
+                       name="repo_link" 
+                       placeholder="https://github.com/username/repo">
+                <p style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">
+                    <i class="fas fa-info-circle"></i> Optional: Link to your GitHub, GitLab, or Bitbucket repository
+                </p>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-check"></i> Create Project
+                </button>
+                <a href="{{ url_for('projects') }}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Character counters
+    document.getElementById('project-name').addEventListener('input', function() {
+        document.getElementById('name-count').textContent = this.value.length;
+    });
+
+    document.getElementById('project-desc').addEventListener('input', function() {
+        document.getElementById('desc-count').textContent = this.value.length;
+    });
+</script>
+
+{% endblock %}

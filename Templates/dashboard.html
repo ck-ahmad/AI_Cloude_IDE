@@ -1,0 +1,445 @@
+{% extends "base.html" %}
+
+{% block title %}Command Center - Gotham IDE{% endblock %}
+
+{% block content %}
+<style>
+    .dashboard-header {
+        margin-bottom: 40px;
+    }
+
+    .dashboard-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 36px;
+        font-weight: 900;
+        background: linear-gradient(135deg, #ffd700, #d4af37);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+
+    .dashboard-subtitle {
+        color: #808080;
+        font-size: 14px;
+        letter-spacing: 1px;
+    }
+
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 25px;
+        margin-bottom: 40px;
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, rgba(15, 15, 15, 0.95) 0%, rgba(26, 26, 26, 0.8) 100%);
+        border: 2px solid rgba(255, 215, 0, 0.3);
+        border-radius: 12px;
+        padding: 25px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        transition: all 0.4s;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.1), transparent);
+        transition: left 0.6s;
+    }
+
+    .stat-card:hover::before {
+        left: 100%;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        border-color: #ffd700;
+        box-shadow: 0 10px 40px rgba(255, 215, 0, 0.3);
+    }
+
+    .stat-icon {
+        width: 70px;
+        height: 70px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        flex-shrink: 0;
+        position: relative;
+    }
+
+    .stat-icon::after {
+        content: '';
+        position: absolute;
+        inset: -3px;
+        border-radius: 12px;
+        padding: 3px;
+        background: linear-gradient(135deg, #ffd700, #d4af37);
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+    }
+
+    .stat-icon.blue {
+        background: rgba(0, 212, 255, 0.2);
+        color: #00d4ff;
+    }
+
+    .stat-icon.green {
+        background: rgba(0, 255, 127, 0.2);
+        color: #00ff7f;
+    }
+
+    .stat-icon.yellow {
+        background: rgba(255, 215, 0, 0.2);
+        color: #ffd700;
+    }
+
+    .stat-icon.orange {
+        background: rgba(255, 140, 0, 0.2);
+        color: #ff8c00;
+    }
+
+    .stat-info h3 {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 36px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        color: #ffd700;
+    }
+
+    .stat-info p {
+        font-size: 12px;
+        color: #808080;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .storage-bar {
+        width: 100%;
+        height: 10px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 5px;
+        overflow: hidden;
+        margin-top: 12px;
+        border: 1px solid rgba(255, 215, 0, 0.2);
+    }
+
+    .storage-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #ffd700, #00d4ff);
+        transition: width 0.3s ease;
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid rgba(255, 215, 0, 0.2);
+    }
+
+    .section-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 24px;
+        font-weight: 700;
+        color: #ffd700;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+
+    .projects-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 25px;
+    }
+
+    .project-card {
+        background: linear-gradient(135deg, rgba(15, 15, 15, 0.95) 0%, rgba(26, 26, 26, 0.8) 100%);
+        border: 2px solid rgba(255, 215, 0, 0.3);
+        border-radius: 12px;
+        padding: 25px;
+        transition: all 0.4s;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .project-card::before {
+        content: '';
+        position: absolute;
+        top: -2px;
+        left: -2px;
+        right: -2px;
+        height: 4px;
+        background: linear-gradient(90deg, transparent, #ffd700, transparent);
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .project-card:hover::before {
+        opacity: 1;
+    }
+
+    .project-card:hover {
+        transform: translateY(-5px);
+        border-color: #ffd700;
+        box-shadow: 0 10px 40px rgba(255, 215, 0, 0.3);
+    }
+
+    .project-header {
+        display: flex;
+        align-items: start;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+
+    .project-icon {
+        width: 55px;
+        height: 55px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #ffd700, #00d4ff);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #0a0a0a;
+        font-size: 24px;
+        flex-shrink: 0;
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+    }
+
+    .project-info h3 {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 18px;
+        font-weight: 700;
+        color: #ffd700;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+    }
+
+    .project-info p {
+        font-size: 11px;
+        color: #808080;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .project-description {
+        font-size: 13px;
+        color: #a0a0a0;
+        line-height: 1.6;
+        margin-bottom: 15px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .project-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 15px;
+        border-top: 1px solid rgba(255, 215, 0, 0.2);
+    }
+
+    .project-meta {
+        display: flex;
+        gap: 20px;
+        font-size: 11px;
+        color: #808080;
+    }
+
+    .project-meta span {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .project-meta i {
+        color: #ffd700;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 80px 30px;
+        background: linear-gradient(135deg, rgba(15, 15, 15, 0.95) 0%, rgba(26, 26, 26, 0.8) 100%);
+        border: 3px dashed rgba(255, 215, 0, 0.3);
+        border-radius: 15px;
+    }
+
+    .empty-state i {
+        font-size: 64px;
+        color: #ffd700;
+        margin-bottom: 20px;
+        filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.5));
+    }
+
+    .empty-state h3 {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 22px;
+        color: #ffd700;
+        margin-bottom: 12px;
+        text-transform: uppercase;
+    }
+
+    .empty-state p {
+        color: #808080;
+        margin-bottom: 30px;
+    }
+
+    .quick-actions {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 25px;
+    }
+</style>
+
+<div class="dashboard-header">
+    <h1 class="dashboard-title">
+        ⚡ Welcome Back, {{ user.username }}
+    </h1>
+    <p class="dashboard-subtitle">
+        Command Center • Gotham IDE Operations Hub
+    </p>
+</div>
+
+<!-- Stats Grid -->
+<div class="dashboard-grid">
+    <div class="stat-card">
+        <div class="stat-icon blue">
+            <i class="fas fa-folder"></i>
+        </div>
+        <div class="stat-info">
+            <h3>{{ projects|length }}</h3>
+            <p>Active Missions</p>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon green">
+            <i class="fas fa-file-code"></i>
+        </div>
+        <div class="stat-info">
+            <h3>{{ total_files }}</h3>
+            <p>Arsenal Files</p>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon yellow">
+            <i class="fas fa-database"></i>
+        </div>
+        <div class="stat-info">
+            <h3>{{ "%.1f"|format(user.storage_used) }} MB</h3>
+            <p>Data Vault Used</p>
+            <div class="storage-bar">
+                <div class="storage-fill" style="width: {{ storage_percent }}%"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon orange">
+            <i class="fas fa-clock"></i>
+        </div>
+        <div class="stat-info">
+            <h3>{{ user.created_at.strftime('%b %Y') }}</h3>
+            <p>Vigilante Since</p>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Projects -->
+<div class="section-header">
+    <h2 class="section-title">
+        <i class="fas fa-folder-open"></i> Active Operations
+    </h2>
+    <a href="{{ url_for('create_project') }}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> New Mission
+    </a>
+</div>
+
+{% if projects %}
+<div class="projects-grid">
+    {% for project in projects[:6] %}
+    <div class="project-card" onclick="window.location.href='{{ url_for('project_detail', project_id=project.id) }}'">
+        <div class="project-header">
+            <div class="project-icon">
+                <i class="fas fa-code"></i>
+            </div>
+            <div class="project-info">
+                <h3>{{ project.name }}</h3>
+                <p>Updated {{ project.updated_at.strftime('%b %d, %Y') }}</p>
+            </div>
+        </div>
+        
+        {% if project.description %}
+        <div class="project-description">
+            {{ project.description }}
+        </div>
+        {% else %}
+        <div class="project-description" style="font-style: italic; color: #606060;">
+            Classified mission details
+        </div>
+        {% endif %}
+        
+        <div class="project-footer">
+            <div class="project-meta">
+                <span>
+                    <i class="fas fa-file"></i>
+                    {{ project.files|length }} files
+                </span>
+                {% if project.repo_link %}
+                <span>
+                    <i class="fab fa-github"></i>
+                    Repo
+                </span>
+                {% endif %}
+            </div>
+            <i class="fas fa-arrow-right" style="color: #ffd700;"></i>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if projects|length > 6 %}
+<div style="text-align: center; margin-top: 30px;">
+    <a href="{{ url_for('projects') }}" class="btn btn-secondary">
+        View All Operations <i class="fas fa-arrow-right"></i>
+    </a>
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+    <i class="fas fa-folder-plus"></i>
+    <h3>No Active Missions</h3>
+    <p>The Batcave is ready. Initialize your first operation to begin.</p>
+    <div class="quick-actions">
+        <a href="{{ url_for('create_project') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Start Mission
+        </a>
+        <a href="{{ url_for('ide') }}" class="btn btn-secondary">
+            <i class="fas fa-code"></i> Enter Batcomputer
+        </a>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

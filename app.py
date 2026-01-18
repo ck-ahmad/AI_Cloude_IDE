@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, session, flash, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from flask_socketio import SocketIO, emit, join_room, leave_room, rooms
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from functools import wraps
@@ -10,12 +11,13 @@ import cloudinary
 import cloudinary.uploader
 import cloudinary.api
 from sqlalchemy import text
+import google.generativeai as genai
 
 # =====================================
 #            FLASK SETUP
 # =====================================
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "Your Secure key")
+app.secret_key = os.environ.get("SECRET_KEY", "nsluvurhozqetrxz")
 
 # ============ DATABASE (SQLite) =============
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///AI_IDE.db'
@@ -23,12 +25,26 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
 db = SQLAlchemy(app)
 
+# ============ SOCKETIO SETUP =============
+socketio = SocketIO(app, cors_allowed_origins="*", manage_session=False)
+
 # ==================== Cloudinary Configuration =================
 cloudinary.config(
     cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME", "YOUR_CLOUD_NAME"),
     api_key=os.environ.get("CLOUDINARY_API_KEY", "YOUR_API_KEY"),
     api_secret=os.environ.get("CLOUDINARY_API_SECRET", "YOUR_API_SECRET"),
     secure=True
+)
+
+# =====================================
+#         GEMINI AI SETUP
+# =====================================
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", 'AIzaSyCe-j3YXcDECkupfUDxqPhHjsWYjWBrQ9Y')
+genai.configure(api_key=GEMINI_API_KEY)
+
+model = genai.GenerativeModel(
+    model_name="gemini-1.5-pro", 
+    system_instruction="You are an expert AI Coding Assistant. Keep answers technical and brief."
 )
 
 # =====================================
@@ -93,19 +109,6 @@ class FileDetails(db.Model):
     def __repr__(self):
         return f'<File {self.filename}>'
 
-import google.generativeai as genai
-
-# ... (Existing imports)
-
-# =====================================
-#         GEMINI AI SETUP
-# =====================================
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", 'Your API key')
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel(
-    model_name="gemini-1.5-pro", 
-    system_instruction="You are an expert AI Coding Assistant. Keep answers technical and brief."
-)
 
 # =====================================
 #            AUTHENTICATION HELPERS
@@ -129,6 +132,226 @@ def get_current_user():
 
 
 # =====================================
+#            SOCKETIO EVENTS
+# =====================================
+# Store active users per room
+active_users = {}
+
+@socketio.on('connect')
+def handle_connect():
+    """Handle new WebSocket connection"""
+    print(f'Client connected: {request.sid}')
+    emit('connection_response', {'status': 'connected', 'sid': request.sid})
+
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Handle WebSocket disconnection"""
+    print(f'Client disconnected: {request.sid}')
+    # Remove user from all rooms
+    for room_name in list(active_users.keys()):
+        if request.sid in active_users.get(room_name, []):
+            active_users[room_name].remove(request.sid)
+            if not active_users[room_name]:
+                del active_users[room_name]
+
+
+@socketio.on('join_project')
+def handle_join_project(data):
+    """Join a project room for real-time collaboration"""
+    project_id = data.get('project_id')
+    username = data.get('username', 'Anonymous')
+    
+    if not project_id:
+        emit('error', {'message': 'Project ID required'})
+        return
+    
+    room = f'project_{project_id}'
+    join_room(room)
+    
+    # Track active users
+    if room not in active_users:
+        active_users[room] = []
+    if request.sid not in active_users[room]:
+        active_users[room].append(request.sid)
+    
+    # Notify others in the room
+    emit('user_joined', {
+        'username': username,
+        'project_id': project_id,
+        'active_users': len(active_users[room])
+    }, room=room, skip_sid=request.sid)
+    
+    # Confirm join to the user
+    emit('joined_project', {
+        'project_id': project_id,
+        'active_users': len(active_users[room])
+    })
+    
+    print(f'User {username} joined project {project_id}')
+
+
+@socketio.on('leave_project')
+def handle_leave_project(data):
+    """Leave a project room"""
+    project_id = data.get('project_id')
+    username = data.get('username', 'Anonymous')
+    
+    if not project_id:
+        return
+    
+    room = f'project_{project_id}'
+    leave_room(room)
+    
+    # Update active users
+    if room in active_users and request.sid in active_users[room]:
+        active_users[room].remove(request.sid)
+        if not active_users[room]:
+            del active_users[room]
+    
+    # Notify others
+    emit('user_left', {
+        'username': username,
+        'project_id': project_id,
+        'active_users': len(active_users.get(room, []))
+    }, room=room)
+    
+    print(f'User {username} left project {project_id}')
+
+
+@socketio.on('code_update')
+def handle_code_update(data):
+    """Broadcast code changes to project collaborators"""
+    project_id = data.get('project_id')
+    code = data.get('code', '')
+    filename = data.get('filename', 'untitled')
+    username = data.get('username', 'Anonymous')
+    cursor_position = data.get('cursor_position')
+    
+    if not project_id:
+        return
+    
+    room = f'project_{project_id}'
+    
+    # Broadcast to all users in the room except sender
+    emit('code_changed', {
+        'code': code,
+        'filename': filename,
+        'username': username,
+        'cursor_position': cursor_position,
+        'timestamp': datetime.utcnow().isoformat()
+    }, room=room, skip_sid=request.sid)
+
+
+@socketio.on('cursor_move')
+def handle_cursor_move(data):
+    """Broadcast cursor position for collaborative editing"""
+    project_id = data.get('project_id')
+    position = data.get('position')
+    username = data.get('username', 'Anonymous')
+    
+    if not project_id:
+        return
+    
+    room = f'project_{project_id}'
+    emit('cursor_update', {
+        'username': username,
+        'position': position
+    }, room=room, skip_sid=request.sid)
+
+
+@socketio.on('chat_message')
+def handle_chat_message(data):
+    """Handle chat messages in project rooms"""
+    project_id = data.get('project_id')
+    message = data.get('message', '')
+    username = data.get('username', 'Anonymous')
+    
+    if not project_id or not message:
+        return
+    
+    room = f'project_{project_id}'
+    
+    # Broadcast message to all users in room
+    emit('new_message', {
+        'username': username,
+        'message': message,
+        'timestamp': datetime.utcnow().isoformat()
+    }, room=room)
+
+
+@socketio.on('file_created')
+def handle_file_created(data):
+    """Notify when a new file is created"""
+    project_id = data.get('project_id')
+    filename = data.get('filename')
+    username = data.get('username', 'Anonymous')
+    
+    if not project_id:
+        return
+    
+    room = f'project_{project_id}'
+    emit('file_added', {
+        'filename': filename,
+        'username': username,
+        'timestamp': datetime.utcnow().isoformat()
+    }, room=room, skip_sid=request.sid)
+
+
+@socketio.on('file_deleted')
+def handle_file_deleted(data):
+    """Notify when a file is deleted"""
+    project_id = data.get('project_id')
+    filename = data.get('filename')
+    username = data.get('username', 'Anonymous')
+    
+    if not project_id:
+        return
+    
+    room = f'project_{project_id}'
+    emit('file_removed', {
+        'filename': filename,
+        'username': username,
+        'timestamp': datetime.utcnow().isoformat()
+    }, room=room, skip_sid=request.sid)
+
+
+@socketio.on('code_execution')
+def handle_code_execution(data):
+    """Broadcast code execution status"""
+    project_id = data.get('project_id')
+    status = data.get('status')
+    username = data.get('username', 'Anonymous')
+    
+    if not project_id:
+        return
+    
+    room = f'project_{project_id}'
+    emit('execution_status', {
+        'username': username,
+        'status': status,
+        'timestamp': datetime.utcnow().isoformat()
+    }, room=room)
+
+
+@socketio.on('typing')
+def handle_typing(data):
+    """Broadcast typing indicator"""
+    project_id = data.get('project_id')
+    username = data.get('username', 'Anonymous')
+    is_typing = data.get('is_typing', False)
+    
+    if not project_id:
+        return
+    
+    room = f'project_{project_id}'
+    emit('user_typing', {
+        'username': username,
+        'is_typing': is_typing
+    }, room=room, skip_sid=request.sid)
+
+
+# =====================================
 #            MAIN ROUTES
 # =====================================
 @app.route('/')
@@ -136,7 +359,7 @@ def index():
     """Homepage - redirect to dashboard if logged in"""
     if "user_id" in session:
         return redirect(url_for('dashboard'))
-    return redirect(url_for('login')) # done
+    return redirect(url_for('login'))
 
 
 @app.route('/dashboard')
@@ -154,8 +377,7 @@ def dashboard():
                          user=user, 
                          projects=projects,
                          total_files=total_files,
-                         storage_percent=storage_percent) # done
-
+                         storage_percent=storage_percent)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -224,7 +446,7 @@ def register():
             app.logger.error(f"Registration error: {str(e)}")
             return redirect(url_for("register"))
 
-    return render_template("register.html") # done
+    return render_template("register.html")
 
 
 @app.route("/logout")
@@ -233,7 +455,7 @@ def logout():
     username = session.get("username", "User")
     session.clear()
     flash(f"Goodbye, {username}! You've been logged out successfully.", "info")
-    return redirect(url_for("login")) # done
+    return redirect(url_for("login"))
 
 
 # =====================================
@@ -245,8 +467,7 @@ def projects():
     """List all user projects"""
     user = get_current_user()
     user_projects = Project.query.filter_by(user_id=user.id).order_by(Project.updated_at.desc()).all()
-    return render_template('projects.html', projects=user_projects) # done
-
+    return render_template('projects.html', projects=user_projects)
 
 
 @app.route('/project/create', methods=['GET', 'POST'])
@@ -260,7 +481,7 @@ def create_project():
         
         if not name:
             flash("Project name is required.", "error")
-            return redirect(url_for("create_project")) # done
+            return redirect(url_for("create_project"))
         
         user = get_current_user()
         new_project = Project(
@@ -274,7 +495,7 @@ def create_project():
             db.session.add(new_project)
             db.session.commit()
             flash(f"Project '{name}' created successfully!", "success")
-            return redirect(url_for('project_detail', project_id=new_project.id)) # done
+            return redirect(url_for('project_detail', project_id=new_project.id))
         except Exception as e:
             db.session.rollback()
             flash("Error creating project. Please try again.", "error")
@@ -331,7 +552,7 @@ def file_manager():
     """File manager page"""
     user = get_current_user()
     files = FileDetails.query.filter_by(user_id=user.id).order_by(FileDetails.last_updated.desc()).all()
-    return render_template('file_manager.html', user=user, files=files) # done
+    return render_template('file_manager.html', user=user, files=files)
 
 
 @app.route('/file/upload', methods=['GET', 'POST'])
@@ -396,6 +617,15 @@ def file_upload():
             db.session.commit()
 
             flash(f"File '{filename}' uploaded successfully!", "success")
+            
+            # Notify via SocketIO if in a project
+            if project_id:
+                socketio.emit('file_added', {
+                    'filename': filename,
+                    'username': user.username,
+                    'timestamp': datetime.utcnow().isoformat()
+                }, room=f'project_{project_id}')
+            
             return redirect(url_for("file_manager"))
 
         except Exception as e:
@@ -406,9 +636,7 @@ def file_upload():
 
     # GET request - show upload form
     projects = Project.query.filter_by(user_id=user.id).all()
-    return render_template("file_upload.html", user=user, projects=projects) # done
-
-
+    return render_template("file_upload.html", user=user, projects=projects)
 
 
 @app.route('/file/<int:file_id>/delete', methods=['POST'])
@@ -422,8 +650,20 @@ def delete_file(file_id):
         return jsonify({"status": "error", "message": "File not found"}), 404
     
     try:
+        project_id = file.project_id
+        filename = file.filename
+        
         db.session.delete(file)
         db.session.commit()
+        
+        # Notify via SocketIO if in a project
+        if project_id:
+            socketio.emit('file_removed', {
+                'filename': filename,
+                'username': user.username,
+                'timestamp': datetime.utcnow().isoformat()
+            }, room=f'project_{project_id}')
+        
         return jsonify({"status": "success", "message": "File deleted successfully"})
     except Exception as e:
         db.session.rollback()
@@ -439,7 +679,7 @@ def ide():
     """Code IDE interface"""
     user = get_current_user()
     projects = Project.query.filter_by(user_id=user.id).all()
-    return render_template('ide.html', user=user, projects=projects) # done
+    return render_template('ide.html', user=user, projects=projects)
 
 
 @app.route('/ide/save', methods=['POST'])
@@ -490,6 +730,15 @@ def save_code():
             message = "File created successfully"
 
         db.session.commit()
+        
+        # Notify via SocketIO if in a project
+        if project_id:
+            socketio.emit('file_saved', {
+                'filename': filename,
+                'username': user.username,
+                'timestamp': datetime.utcnow().isoformat()
+            }, room=f'project_{project_id}')
+        
         return jsonify({"status": "success", "message": message, "file_id": file_detail.id})
     
     except Exception as e:
@@ -509,8 +758,6 @@ def execute_code():
     if not code:
         return jsonify({"status": "error", "message": "No code provided"}), 400
 
-    # This is a simplified example for educational purposes
-    
     try:
         if language == 'python':
             # Create temporary file
@@ -600,6 +847,7 @@ def ai_assistant():
     """AI coding assistant interface"""
     return render_template('ai_assistant.html')
 
+
 @app.route('/ai-assistant/chat', methods=['POST'])
 @login_required
 def ai_chat():
@@ -684,8 +932,8 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()
         print("✓ Database tables created successfully")
-        print("✓ Starting Flask AI IDE application...")
+        print("✓ Starting Flask AI IDE application with SocketIO...")
         print("✓ Access the application at http://127.0.0.1:5000")
 
-    # Run the application
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # Run the application with SocketIO
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000)

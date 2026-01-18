@@ -25,10 +25,7 @@
 
 ## 🚧 **Project Status**
 
-> This project is currently under **active development**.<br>
-> 
-> **Core Development Team:**
-> - 🧑‍💻 **Ahmad** - Backend & AI Integration | [LinkedIn](https://www.linkedin.com/in/ahmad0763)
+> This project has Completed its First Phase of **AI IDE Phase 1.0**.<br>
 
 ---
 

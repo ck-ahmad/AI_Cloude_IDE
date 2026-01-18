@@ -282,7 +282,7 @@ For detailed setup instructions, API documentation, and developer guides, please
   </tr>
    <tr>
     <td align="center">
-      <img src="https://img.shields.io/badge/Role-Backend_&_AI-blue?style=flat-square" /><br>
+      <img src="https://img.shields.io/badge/Role-Frontend_&_Debug-blue?style=flat-square" /><br>
       <b>M. Aizazullah</b><br>
       <sub>Frontend & Debugging</sub><br>
       <a href="https://www.linkedin.com/in/muhammad-aizazullah-748931286/">LinkedIn</a>
@@ -290,7 +290,7 @@ For detailed setup instructions, API documentation, and developer guides, please
   </tr>
   <tr>
     <td align="center">
-      <img src="https://img.shields.io/badge/Role-Backend_&_AI-blue?style=flat-square" /><br>
+      <img src="https://img.shields.io/badge/Role-Cloude_&_.-blue?style=flat-square" /><br>
       <b>Ume Habiba</b><br>
       <sub>CLoude Integration</sub><br>
       <a href="https://www.linkedin.com/in/um-e-habiba-031b6a301/">LinkedIn</a>
@@ -354,7 +354,7 @@ See [LICENSE](License.md) for more details.
 
 Special thanks to:
 - **Monaco Editor** team for the amazing code editor
-- **OpenAI** for GPT API powering our AI assistant
+- **OpenAI & Gemeni API** for GPT & Gemeni API powering our AI assistant
 - **GitHub** for their comprehensive API
 - The open-source community for inspiration
 
